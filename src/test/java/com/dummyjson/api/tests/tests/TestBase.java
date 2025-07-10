@@ -22,7 +22,6 @@ public class TestBase {
                 .setContentType(ContentType.JSON)
                 .build();
         RestAssured.filters(new RequestLoggingFilter(), new ResponseLoggingFilter(), withCustomTemplates());
-        RestAssured.filters(new RequestLoggingFilter(), new ResponseLoggingFilter());
 
     }
 }
