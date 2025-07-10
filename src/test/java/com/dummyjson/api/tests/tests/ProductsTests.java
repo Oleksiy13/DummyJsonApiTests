@@ -4,11 +4,9 @@ import com.dummyjson.api.tests.dto.Product;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import static io.restassured.RestAssured.given;
+import static io.restassured.module.jsv.JsonSchemaValidator.matchesJsonSchemaInClasspath;
 import static org.hamcrest.Matchers.*;
 import org.junit.jupiter.api.Assertions;
-
-import java.util.HashMap;
-import java.util.Map;
 
 
 public class ProductsTests extends TestBase {
@@ -27,24 +25,23 @@ public class ProductsTests extends TestBase {
                         "skip", equalTo(0),
                         "limit", equalTo(30)
                 );
-
     }
 
     @Test
-    @DisplayName("Get single product by ID - Positive test")
+    @DisplayName("Get single product by ID - Positive test with Schema Validation")
     void getSingleProductByIdTest() {
         int productId = 1;
         given()
                 .when()
                 .get("/products/" + productId)
                 .then()
-                .log().all()
                 .statusCode(200)
                 .body(
                         "id", equalTo(productId),
                         "title", equalTo("Essence Mascara Lash Princess"),
                         "price", greaterThan(0F)
-                );
+                )
+                .body(matchesJsonSchemaInClasspath("schemas/product_schema.json"));
     }
 
     @Test
@@ -60,19 +57,16 @@ public class ProductsTests extends TestBase {
         );
 
         Product createdProductResponse = given()
-                .header("Content-Type", "application/json")
                 .body(newProductRequest)
                 .when()
                 .post("/products/add")
                 .then()
-                .log().all()
                 .statusCode(201)
                 .body("id", notNullValue())
                 .body("title", equalTo(newProductRequest.getTitle()))
                 .body("price", equalTo(newProductRequest.getPrice()))
                 .extract()
                 .as(Product.class);
-
 
         Assertions.assertNotNull(createdProductResponse.getId(), "Product ID should not be null");
         Assertions.assertEquals(newProductRequest.getTitle(), createdProductResponse.getTitle(), "Product title mismatch");
@@ -96,14 +90,11 @@ public class ProductsTests extends TestBase {
                 "NegativePriceBrand"
         );
 
-
         given()
-                .header("Content-Type", "application/json")
                 .body(newProductRequest)
                 .when()
                 .post("/products/add")
                 .then()
-                .log().all()
                 .statusCode(201)
                 .body("price", equalTo(-10.95F));
         System.out.println("ALERT: DummyJSON API allowed creation of product with negative price.");
@@ -124,12 +115,10 @@ public class ProductsTests extends TestBase {
         productUpdate.setDescription(updatedDescription);
 
         Product updatedProductResponse = given()
-                .header("Content-Type", "application/json")
                 .body(productUpdate)
                 .when()
                 .put("/products/" + productIdToUpdate)
                 .then()
-                .log().all()
                 .statusCode(200)
                 .body("id", equalTo(productIdToUpdate))
                 .body("title", equalTo(updatedTitle))
@@ -147,7 +136,7 @@ public class ProductsTests extends TestBase {
     @Test
     @DisplayName("Update a product (Negative - Non-existent ID)")
     void updateProductNonExistentIdTest() {
-        int nonExistentProductId = 99999; // ID, которого точно нет
+        int nonExistentProductId = 99999;
         String titleForUpdate = "Attempt to Update Non-existent Product";
         float priceForUpdate = 5.00F;
 
@@ -156,12 +145,48 @@ public class ProductsTests extends TestBase {
         productUpdate.setPrice(priceForUpdate);
 
         given()
-                .header("Content-Type", "application/json")
                 .body(productUpdate)
                 .when()
                 .put("/products/" + nonExistentProductId)
                 .then()
-                .log().all()
+                .statusCode(404)
+                .body("message", equalTo("Product with id '" + nonExistentProductId + "' not found"));
+    }
+
+    @Test
+    @DisplayName("Delete a product (Positive)")
+    void deleteProductPositiveTest() {
+        int productIdToDelete = 1;
+
+        Product deletedProductResponse = given()
+                .when()
+                .delete("/products/" + productIdToDelete)
+                .then()
+                .statusCode(200)
+                .body("id", equalTo(productIdToDelete))
+                .body("isDeleted", equalTo(true))
+                .body("deletedOn", notNullValue())
+                .extract()
+                .as(Product.class);
+
+
+        Assertions.assertEquals(productIdToDelete, deletedProductResponse.getId(), "Product ID mismatch");
+        Assertions.assertTrue(deletedProductResponse.getIsDeleted(), "Product should be marked as deleted");
+        Assertions.assertNotNull(deletedProductResponse.getDeletedOn(), "DeletedOn timestamp should not be null");
+
+        System.out.println("Successfully marked product with ID: " + deletedProductResponse.getId() + " as deleted.");
+        System.out.println("Full deleted product details: " + deletedProductResponse.toString());
+    }
+
+    @Test
+    @DisplayName("Delete a product (Negative - Non-existent ID)")
+    void deleteProductNegativeNonExistentIdTest() {
+        int nonExistentProductId = 99999;
+
+        given()
+                .when()
+                .delete("/products/" + nonExistentProductId)
+                .then()
                 .statusCode(404)
                 .body("message", equalTo("Product with id '" + nonExistentProductId + "' not found"));
     }

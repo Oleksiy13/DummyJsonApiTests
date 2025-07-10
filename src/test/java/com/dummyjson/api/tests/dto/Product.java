@@ -5,16 +5,18 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
-@JsonIgnoreProperties(ignoreUnknown = true)
-@JsonInclude(JsonInclude.Include.NON_NULL)
+@JsonIgnoreProperties(ignoreUnknown = true) // игнорим ненужные поля
+@JsonInclude(JsonInclude.Include.NON_NULL) //игнорим поля NULL
 public class Product {
-    private Integer id;
+    private Integer id; //при создании товара примитивный int не может быть null перед присвоением ID
     private String title;
     private String description;
-    private float price; // <-- ИЗМЕНЕНО НА float
+    private float price;
     private int stock;
     private String category;
     private String brand;
+    private Boolean isDeleted;
+    private String deletedOn;
 
     public Product() {
 
@@ -38,7 +40,10 @@ public class Product {
             @JsonProperty("price") float price,
             @JsonProperty("stock") int stock,
             @JsonProperty("category") String category,
-            @JsonProperty("brand") String brand) {
+            @JsonProperty("brand") String brand,
+            @JsonProperty("isDeleted") Boolean isDeleted,
+            @JsonProperty("deletedOn") String deletedOn)
+    {
         this.id = id;
         this.title = title;
         this.description = description;
@@ -46,6 +51,8 @@ public class Product {
         this.stock = stock;
         this.category = category;
         this.brand = brand;
+        this.isDeleted = isDeleted;
+        this.deletedOn = deletedOn;
     }
 
 
@@ -77,6 +84,14 @@ public class Product {
         return brand;
     }
 
+    public Boolean getIsDeleted() {
+        return isDeleted;
+    }
+
+    public String getDeletedOn() {
+        return deletedOn;
+    }
+
 
     public void setId(Integer id) {
         this.id = id;
@@ -106,6 +121,14 @@ public class Product {
         this.brand = brand;
     }
 
+    public void setIsDeleted(Boolean deleted) {
+        isDeleted = deleted;
+    }
+
+    public void setDeletedOn(String deletedOn) {
+        this.deletedOn = deletedOn;
+    }
+
     @Override
     public String toString() {
         return "Product{" +
@@ -116,6 +139,8 @@ public class Product {
                 ", stock=" + stock +
                 ", category='" + category + '\'' +
                 ", brand='" + brand + '\'' +
+                ", isDeleted=" + isDeleted +
+                ", deletedOn='" + deletedOn + '\'' +
                 '}';
     }
 }
