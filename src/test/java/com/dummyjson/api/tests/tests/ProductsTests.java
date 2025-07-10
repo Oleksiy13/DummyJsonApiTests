@@ -1,22 +1,35 @@
 package com.dummyjson.api.tests.tests;
 
 import com.dummyjson.api.tests.dto.Product;
+import com.dummyjson.api.tests.helpers.ConfigReader;
+import com.dummyjson.api.tests.wrappers.AuthApiWrapper;
+import com.dummyjson.api.tests.wrappers.ProductsApiWrapper;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+
 import static io.restassured.RestAssured.given;
 import static io.restassured.module.jsv.JsonSchemaValidator.matchesJsonSchemaInClasspath;
 import static org.hamcrest.Matchers.*;
+
 import org.junit.jupiter.api.Assertions;
 
 
 public class ProductsTests extends TestBase {
+    private ProductsApiWrapper productsApi;
+
+    @BeforeEach
+    void setUp() {
+        AuthApiWrapper authApi = new AuthApiWrapper();
+        // Выполняем логин для операций, требующих авторизации
+        authApi.login(ConfigReader.getProperty("auth.username"), ConfigReader.getProperty("auth.password"));
+        productsApi = new ProductsApiWrapper(authApi);
+    }
 
     @Test
     @DisplayName("Get all products and verify count")
     void getAllProductsAndVerifyCount() {
-        given()
-                .when()
-                .get("/products")
+        productsApi.getAllProducts()
                 .then()
                 .statusCode(200)
                 .body(
@@ -31,9 +44,7 @@ public class ProductsTests extends TestBase {
     @DisplayName("Get single product by ID - Positive test with Schema Validation")
     void getSingleProductByIdTest() {
         int productId = 1;
-        given()
-                .when()
-                .get("/products/" + productId)
+        productsApi.getProductById(productId)
                 .then()
                 .statusCode(200)
                 .body(
@@ -56,10 +67,7 @@ public class ProductsTests extends TestBase {
                 "MyBrand"
         );
 
-        Product createdProductResponse = given()
-                .body(newProductRequest)
-                .when()
-                .post("/products/add")
+        Product createdProductResponse = productsApi.createProduct(newProductRequest)
                 .then()
                 .statusCode(201)
                 .body("id", notNullValue())
@@ -90,10 +98,7 @@ public class ProductsTests extends TestBase {
                 "NegativePriceBrand"
         );
 
-        given()
-                .body(newProductRequest)
-                .when()
-                .post("/products/add")
+        productsApi.createProduct(newProductRequest)
                 .then()
                 .statusCode(201)
                 .body("price", equalTo(-10.95F));
@@ -114,10 +119,7 @@ public class ProductsTests extends TestBase {
         productUpdate.setPrice(updatedPrice);
         productUpdate.setDescription(updatedDescription);
 
-        Product updatedProductResponse = given()
-                .body(productUpdate)
-                .when()
-                .put("/products/" + productIdToUpdate)
+        Product updatedProductResponse = productsApi.updateProduct(productIdToUpdate, productUpdate)
                 .then()
                 .statusCode(200)
                 .body("id", equalTo(productIdToUpdate))
@@ -144,10 +146,7 @@ public class ProductsTests extends TestBase {
         productUpdate.setTitle(titleForUpdate);
         productUpdate.setPrice(priceForUpdate);
 
-        given()
-                .body(productUpdate)
-                .when()
-                .put("/products/" + nonExistentProductId)
+        productsApi.updateProduct(nonExistentProductId, productUpdate)
                 .then()
                 .statusCode(404)
                 .body("message", equalTo("Product with id '" + nonExistentProductId + "' not found"));
@@ -158,14 +157,13 @@ public class ProductsTests extends TestBase {
     void deleteProductPositiveTest() {
         int productIdToDelete = 1;
 
-        Product deletedProductResponse = given()
-                .when()
-                .delete("/products/" + productIdToDelete)
+        Product deletedProductResponse = productsApi.deleteProduct(productIdToDelete)
                 .then()
                 .statusCode(200)
-                .body("id", equalTo(productIdToDelete))
-                .body("isDeleted", equalTo(true))
-                .body("deletedOn", notNullValue())
+                .body(
+                        "id", equalTo(productIdToDelete),
+                        "isDeleted", equalTo(true),
+                        "deletedOn", notNullValue())
                 .extract()
                 .as(Product.class);
 
@@ -183,9 +181,7 @@ public class ProductsTests extends TestBase {
     void deleteProductNegativeNonExistentIdTest() {
         int nonExistentProductId = 99999;
 
-        given()
-                .when()
-                .delete("/products/" + nonExistentProductId)
+        productsApi.deleteProduct(nonExistentProductId)
                 .then()
                 .statusCode(404)
                 .body("message", equalTo("Product with id '" + nonExistentProductId + "' not found"));
