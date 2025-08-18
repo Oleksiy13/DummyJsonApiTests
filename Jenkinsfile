@@ -1,24 +1,29 @@
 pipeline {
-    agent any
+    agent { label 'aws-agent' } // Указываем конкретный агент
     stages {
+        stage('Prepare') {
+            steps {
+                sh 'mvn clean install' // Установка зависимостей
+            }
+        }
         stage('Build') {
             steps {
-                bat 'echo Hello World'
-                bat '''
+                sh 'echo Hello World'
+                sh '''
                     echo Multiline shell steps works too
-                    dir
+                    ls -la
                 '''
             }
         }
         stage('Test') {
-                    steps {
-                        bat 'mvn test'
+            steps {
+                sh 'mvn test' // Запуск тестов
+            }
+        }
     }
-}
-}
-post {
+    post {
         always {
-            junit 'target/surefire-reports/*.xml'
+            junit 'target/surefire-reports/*.xml' // Сбор результатов тестов
         }
     }
 }
