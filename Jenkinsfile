@@ -3,7 +3,7 @@ pipeline {
     stages {
         stage('Build') {
             steps {
-                bat 'echo Hello World'  //Коммент
+                bat 'echo Hello World'  //Коммент ще
                 bat '''
                     echo Multiline shell steps works too
                     dir
